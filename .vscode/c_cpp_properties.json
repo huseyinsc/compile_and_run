@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": ["${workspaceFolder}/**", "${CPP_INCLUDES}"],
+      "defines": [],
+      "intelliSenseMode": "linux-gcc-x64",
+      "configurationProvider": "ms-vscode.cpptools",
+      "cppStandard": "c++23",
+      "cStandard": "c23",
+      "compilerPath": "/usr/bin/gcc-14"
+    }
+  ],
+  "version": 4
+}
