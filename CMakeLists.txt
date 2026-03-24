@@ -70,8 +70,25 @@ target_compile_options(compile_and_run PRIVATE
 )
 
 # ==================== Installation & Helper Targets ====================
+option(INSTALL_TO_PATH "Install executable to user's PATH directory" OFF)
+
+# Determine installation destination
+if(INSTALL_TO_PATH)
+    if(WIN32)
+        # Windows: Install to %USERPROFILE%\bin
+        set(INSTALL_BIN_DIR "$ENV{USERPROFILE}/bin")
+    else()
+        # Linux/macOS: Install to /usr/local/bin
+        set(INSTALL_BIN_DIR "/usr/local/bin")
+    endif()
+    message(STATUS "CompileAndRun will be installed to: ${INSTALL_BIN_DIR}")
+else()
+    # Default: Install to project's bin folder (relative)
+    set(INSTALL_BIN_DIR "bin")
+endif()
+
 install(TARGETS compile_and_run 
-    RUNTIME DESTINATION bin
+    RUNTIME DESTINATION ${INSTALL_BIN_DIR}
 )
 
 add_custom_target(config_summary
@@ -80,6 +97,7 @@ add_custom_target(config_summary
     COMMAND ${CMAKE_COMMAND} -E echo "  C++ Standard : ${CMAKE_CXX_STANDARD}"
     COMMAND ${CMAKE_COMMAND} -E echo "  Modules      : https://github.com/huseyinsc/cpp-modules"
     COMMAND ${CMAKE_COMMAND} -E echo "  Static       : ${BUILD_STATIC}"
+    COMMAND ${CMAKE_COMMAND} -E echo "  Install Path : ${INSTALL_BIN_DIR}"
     COMMAND ${CMAKE_COMMAND} -E echo "  Generator    : ${CMAKE_GENERATOR}"
     COMMAND ${CMAKE_COMMAND} -E echo "============================================"
     COMMENT "Configuration summary"

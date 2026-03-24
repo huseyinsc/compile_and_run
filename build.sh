@@ -18,8 +18,7 @@ if [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]]; then
     echo -e "  ${GREEN}--clean${NC} | ${GREEN}-c${NC}          Build klasörünü temizler"
     echo -e "  ${GREEN}--debug${NC}               Debug modunda derler (Release varsayılan)"
     echo -e "  ${GREEN}--static${NC}              Statik executable oluşturur"
-    echo -e "  ${GREEN}--purge-cache${NC}         GLOBAL cache’i tamamen siler (tehlikeli!)"
-    echo -e "  ${GREEN}help${NC} | ${GREEN}--help${NC} | ${GREEN}-h${NC}   Bu yardım mesajını gösterir"
+    echo -e "  ${GREEN}--purge-cache${NC}         GLOBAL cache’i tamamen siler (tehlikeli!)"    echo -e "  ${GREEN}--install${NC}             /usr/local/bin'e kurar (sudo gerektirebilir)"    echo -e "  ${GREEN}help${NC} | ${GREEN}--help${NC} | ${GREEN}-h${NC}   Bu yardım mesajını gösterir"
     echo ""
     echo -e "${YELLOW}Örnek kullanımlar:${NC}"
     echo -e "  ${BLUE}./build.sh${NC}                    → Normal Release build"
@@ -27,8 +26,7 @@ if [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]]; then
     echo -e "  ${BLUE}./build.sh --debug${NC}            → Debug modunda derle"
     echo -e "  ${BLUE}./build.sh --static${NC}           → Statik executable oluştur"
     echo -e "  ${BLUE}./build.sh --clean --debug${NC}    → Temizle + Debug derle"
-    echo -e "  ${BLUE}./build.sh --purge-cache${NC}      → Cache’i sıfırla (yeniden indirecek)"
-    echo ""
+    echo -e "  ${BLUE}./build.sh --purge-cache${NC}      → Cache’i sıfırla (yeniden indirecek)"    echo -e "  ${BLUE}./build.sh --install${NC}          → Build + /usr/local/bin'e yükle (sudo gerekebilir)"    echo ""
     echo -e "${GREEN}Cache konumu:${NC} ~/.cache/cpp-modules  (tüm projelerde ortak)"
     exit 0
 fi
@@ -41,11 +39,13 @@ CLEAN=false
 BUILD_TYPE="Release"
 STATIC=false
 PURGE_CACHE=false
+INSTALL_TO_PATH=false
 
 if [[ "$1" == "--clean" || "$1" == "-c" ]]; then CLEAN=true; fi
 if [[ "$1" == "--debug" ]]; then BUILD_TYPE="Debug"; fi
 if [[ "$1" == "--static" ]]; then STATIC=true; fi
 if [[ "$1" == "--purge-cache" ]]; then PURGE_CACHE=true; fi
+if [[ "$1" == "--install" ]]; then INSTALL_TO_PATH=true; fi
 
 if [ "$CLEAN" = true ]; then
     echo -e "${YELLOW}Build klasörü temizleniyor...${NC}"
@@ -62,9 +62,17 @@ echo -e "${GREEN}Building with ${BUILD_TYPE} (Static: ${STATIC})...${NC}"
 
 cmake -B build -G "$GENERATOR" \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
-    -DBUILD_STATIC="${STATIC}"
+    -DBUILD_STATIC="${STATIC}" \
+    -DINSTALL_TO_PATH="${INSTALL_TO_PATH}"
 
 cmake --build build --config "${BUILD_TYPE}"
+
+if [ "$INSTALL_TO_PATH" = true ]; then
+    echo -e "${YELLOW}/usr/local/bin'e kuruluyor...${NC}"
+    sudo cmake --install build
+    echo -e "${GREEN}compile_and_run başarıyla kuruldu!${NC}"
+    echo -e "${BLUE}Kontrol et: ${NC}compile_and_run --help"
+fi
 
 echo -e "${GREEN}====================================${NC}"
 echo -e "${GREEN}Build TAMAMLANDI!${NC}"

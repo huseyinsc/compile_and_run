@@ -5,20 +5,20 @@ param(
     [switch]$Debug,
     [switch]$Static,
     [switch]$PurgeCache,
+    [switch]$Install,
     [switch]$Help
 )
 
 # ==================== HELP ====================
 if ($Help -or $args -contains "help" -or $args -contains "--help" -or $args -contains "-h") {
     Write-Host "=== CompileAndRun Build Script Yardım ===" -ForegroundColor Green
-    Write-Host "Kullanım: .\build.ps1 [-Clean] [-Debug] [-Static] [-PurgeCache] [-Help]" -ForegroundColor Blue
+    Write-Host "Kullanım: .\build.ps1 [-Clean] [-Debug] [-Static] [-PurgeCache] [-Install] [-Help]" -ForegroundColor Blue
     Write-Host ""
     Write-Host "Mevcut parametreler:" -ForegroundColor Yellow
     Write-Host "  -Clean          : Build klasörünü temizler" -ForegroundColor Green
     Write-Host "  -Debug          : Debug modunda derler (varsayılan Release)" -ForegroundColor Green
     Write-Host "  -Static         : Statik executable oluşturur" -ForegroundColor Green
-    Write-Host "  -PurgeCache     : GLOBAL cache’i tamamen siler (tehlikeli!)" -ForegroundColor Green
-    Write-Host "  -Help           : Bu yardım mesajını gösterir" -ForegroundColor Green
+    Write-Host "  -PurgeCache     : GLOBAL cache’i tamamen siler (tehlikeli!)" -ForegroundColor Green    Write-Host "  -Install        : %USERPROFILE%\bin'e kurar" -ForegroundColor Green    Write-Host "  -Help           : Bu yardım mesajını gösterir" -ForegroundColor Green
     Write-Host ""
     Write-Host "Örnek kullanımlar:" -ForegroundColor Yellow
     Write-Host "  .\build.ps1                          → Normal Release build" -ForegroundColor Blue
@@ -26,8 +26,7 @@ if ($Help -or $args -contains "help" -or $args -contains "--help" -or $args -con
     Write-Host "  .\build.ps1 -Debug                   → Debug modunda derle" -ForegroundColor Blue
     Write-Host "  .\build.ps1 -Static                  → Statik executable oluştur" -ForegroundColor Blue
     Write-Host "  .\build.ps1 -Clean -Debug            → Temizle + Debug derle" -ForegroundColor Blue
-    Write-Host "  .\build.ps1 -PurgeCache              → Cache’i sıfırla (yeniden indirecek)" -ForegroundColor Blue
-    Write-Host ""
+    Write-Host "  .\build.ps1 -PurgeCache              → Cache’i sıfırla (yeniden indirecek)" -ForegroundColor Blue    Write-Host "  .\build.ps1 -Install                 → Build + %USERPROFILE%\bin'e yükle" -ForegroundColor Blue    Write-Host ""
     Write-Host "Cache konumu: $env:LOCALAPPDATA\cpp-modules  (tüm projelerde ortak)" -ForegroundColor Green
     exit 0
 }
@@ -52,9 +51,21 @@ Write-Host "Building with $BUILD_TYPE (Static: $($Static.IsPresent))..." -Foregr
 
 cmake -B build -G Ninja `
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE `
-    -DBUILD_STATIC=$($Static.IsPresent)
+    -DBUILD_STATIC=$($Static.IsPresent) `
+    -DINSTALL_TO_PATH=$($Install.IsPresent)
 
 cmake --build build --config $BUILD_TYPE
+
+if ($Install) {
+    Write-Host "Installing to $env:USERPROFILE\bin..." -ForegroundColor Yellow
+    $binPath = "$env:USERPROFILE\bin"
+    if (-not (Test-Path $binPath)) {
+        New-Item -ItemType Directory -Path $binPath -Force | Out-Null
+    }
+    cmake --install build --config $BUILD_TYPE
+    Write-Host "compile_and_run successfully installed!" -ForegroundColor Green
+    Write-Host "Verify with: compile_and_run --help" -ForegroundColor Blue
+}
 
 Write-Host "====================================" -ForegroundColor Green
 Write-Host "Build TAMAMLANDI!" -ForegroundColor Green

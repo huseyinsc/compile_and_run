@@ -45,22 +45,81 @@ The build scripts support several options:
 - `--debug`: Build in Debug mode (Release is default)
 - `--static`: Create a static executable
 - `--purge-cache`: Clear the global FetchContent cache (use with caution)
+- `--install` / `-Install`: Automatically install the executable to your system PATH
 - `--help` / `-Help`: Display help information and usage examples
 
-Examples:
+### Automated Installation with `--install`
+
+The easiest way to add `compile_and_run` to your PATH is to use the `--install` flag during the build process:
+
+**Linux/macOS:**
+
+```bash
+./build.sh --install
+# This builds and installs to /usr/local/bin (requires sudo)
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.\build.ps1 -Install
+# This builds and installs to %USERPROFILE%\bin
+```
+
+This will:
+1. Build the project in Release mode
+2. Automatically copy the executable to your PATH
+3. Make `compile_and_run` available globally
+
+After installation, you can use `compile_and_run` from any terminal or via CodeRunner.
+
+### Manual PATH Installation
+
+If you prefer to install manually after building:
+
+Linux/macOS:
+
+```bash
+# Build first
+./build.sh
+
+# Copy to PATH directory
+sudo cp build/compile_and_run /usr/local/bin/
+sudo chmod +x /usr/local/bin/compile_and_run
+```
+
+Windows (PowerShell):
+
+```powershell
+# Build first
+.\build.ps1
+
+# Copy to bin directory
+$binPath = "$env:USERPROFILE\bin"
+if (-not (Test-Path $binPath)) { New-Item -ItemType Directory -Path $binPath -Force }
+Copy-Item -Path .\build\compile_and_run.exe -Destination $binPath
+
+# Make PATH persistent
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$binPath", "User")
+```
+
+After installation, restart VS Code to pick up the updated PATH and use CodeRunner.
+
+### Build Examples
 
 ```bash
 # Clean build in Debug mode
 ./build.sh --clean --debug
 
-# Static release build
-./build.sh --static
+# Static release build with automatic installation
+./build.sh --static --install
 
 # Display help
 ./build.sh --help
 
 # Windows equivalent
 .\build.ps1 -Clean -Debug
+.\build.ps1 -Static -Install
 .\build.ps1 -Help
 ```
 
@@ -100,6 +159,36 @@ Run the compiled executable:
 ```
 
 If no filename is provided as an argument, the program will prompt for input.
+
+### CodeRunner Integration (VS Code)
+
+To use this project with the CodeRunner extension, add these to your Code Runner executor map in `settings.json`:
+
+```json
+"code-runner.executorMap": {
+  "c": "cd $dir && compile_and_run \"$fileName\"",
+  "cpp": "cd $dir && compile_and_run \"$fileName\""
+}
+```
+
+This avoids manually writing long compile commands for each file, and delegates the compile-and-run logic to your program.
+
+### Making `compile_and_run` globally accessible (PATH)
+
+The recommended way is to use the `--install` flag during build (see [Automated Installation with `--install`](#automated-installation-with---install) above). This automatically handles all setup for you.
+
+After installation with `--install`, verify it works:
+
+```bash
+# Test from any directory
+compile_and_run --help
+
+# Use in CodeRunner (see CodeRunner Integration section)
+```
+
+If you prefer manual installation, see the previous section for step-by-step instructions.
+
+## Build Options
 
 ### Interactive Mode
 
