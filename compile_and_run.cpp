@@ -199,15 +199,19 @@ private:
         std::string compiler = TerminalReader::readWithGhostText("Default Compiler: ", "g++");
         if (compiler.empty()) compiler = "g++";
 
-        std::string flags = TerminalReader::readWithGhostText("Default Flags: ", "-std=c++23 -Wall");
-        if (flags.empty()) flags = "-std=c++23";
+        std::string flags = TerminalReader::readWithGhostText("Default Flags: ", "-std=c++23 -static -Wall");
+        if (flags.empty()) flags = "-std=c++23 -static -Wall";
 
         std::string includes = TerminalReader::readWithGhostText("Default Includes (e.g., -Iinclude): ", "");
         std::string libs = TerminalReader::readWithGhostText("Default Libs (e.g., -lfmt -lpthread): ", "");
 
-        std::vector<std::string> tools = {"none", "cmake", "make", "choose"};
-        int toolIdx = TerminalReader::selectMenu("Build Tool Preference:", tools);
-        std::string buildTool = tools[toolIdx];
+        std::vector<std::pair<std::string, std::string>> tools = {
+            {"choose", "Choose Build Tool each time"},
+            {"none", "No Build Tool"},
+            {"cmake", "CMake"},
+            {"make", "Make"}
+        };
+        std::string buildTool = TerminalReader::selectMenu("Build Tool Preference:", tools);
 
         std::ofstream file(path);
         if (file.is_open()) {
@@ -217,7 +221,6 @@ private:
             file << "INCLUDES=" << includes << "\n";  
             file << "LIBS=" << libs << "\n";          
             file << "BUILD_TOOL=" << buildTool << "\n";
-            file << "INCLUDES=\n";
             std::cout << "\nGlobal config created successfully!\n";
         } else {
             std::cerr << "CRITICAL ERROR: Could not create config file at " << path << "\n";
@@ -311,34 +314,26 @@ public:
     }
 
     std::string build() {
-        std::string runCmd;
         const char sep = strategy->pathSeparator;
         std::string ext = OS == "windows" ? ".exe" : "";
 
-        std::string compiler = config.get("COMPILER");
-        std::string flags = config.get("FLAGS");
+        // Sadece çıktı yolunu belirliyoruz
+        std::string outPath = (currentDirName == "src") 
+            ? "\".." + std::string(1, sep) + "bin" + sep + fileNameWithoutExt + ext + "\""
+            : "\"" + fileNameWithoutExt + ext + "\"";
+
+        // Komutu tek seferde inşa ediyoruz
+        std::string baseCmd = config.get("COMPILER") + " " + config.get("FLAGS");
         std::string includes = config.get("INCLUDES");
         std::string libs = config.get("LIBS");
 
-        std::string baseCompileCmd = compiler + " " + flags + " ";
-        if (!includes.empty()) baseCompileCmd += includes + " ";
-        baseCompileCmd += "\"" + fileName + "\" -o ";
+        if (!includes.empty()) baseCmd += " " + includes;
         
-        if (currentDirName == "src") {
-            std::string outPath = "\".." + std::string(1, sep) + "bin" + sep + fileNameWithoutExt + ext + "\"";
-            runCmd = baseCompileCmd + outPath;
-            if (!libs.empty()) runCmd += " " + libs;
-            if (!linkOptions.empty()) runCmd += " " + linkOptions;
-            runCmd += " " + separator + " " + outPath;
-        } else {
-            std::string outPath = "\"" + fileNameWithoutExt + ext + "\"";
-            runCmd = baseCompileCmd + outPath;
-            if (!libs.empty()) runCmd += " " + libs;
-            if (!linkOptions.empty()) runCmd += " " + linkOptions;
-            runCmd += " " + separator + " " + outPath;
-        }
-        
-        return runCmd;
+        std::string runCmd = baseCmd + " \"" + fileName + "\" -o " + outPath;
+        if (!libs.empty()) runCmd += " " + libs;
+        if (!linkOptions.empty()) runCmd += " " + linkOptions;
+
+        return runCmd + " " + separator + " " + outPath;
     }
 };
 
@@ -387,6 +382,15 @@ int main(int argc, char* argv[]) {
     
     bool usingBuildSystem = false;
 
+    if (buildTool == "choose") {
+        std::vector<std::pair<std::string, std::string>> options = {
+            {"Standard Compile (g++/clang++)", "none"},
+            {"CMake (if CMakeLists.txt exists)", "cmake"},
+            {"Make (if Makefile exists)", "make"}
+        };
+        buildTool = TerminalReader::selectMenu("What do you want to run?", options);
+    }
+
     if (buildTool == "cmake" && std::filesystem::exists("CMakeLists.txt")) {
         runCmd = "cmake -S . -B build && cmake --build build";
         usingBuildSystem = true;
@@ -394,23 +398,6 @@ int main(int argc, char* argv[]) {
     else if (buildTool == "make" && std::filesystem::exists("Makefile")) {
         runCmd = "make";
         usingBuildSystem = true;
-    }
-    // "choose" senaryosu (kullanıcıya sor)
-    else if (buildTool == "choose") {
-        std::vector<std::string> options = {
-            "CMake (if CMakeLists.txt exists)",
-            "Make (if Makefile exists)",
-            "Standard Compile (g++/clang++)"
-        };
-        int choice = TerminalReader::selectMenu("What do you want to run?", options);
-        
-        if (choice == 0 && std::filesystem::exists("CMakeLists.txt")) {
-            runCmd = "cmake -S . -B build && cmake --build build";
-            usingBuildSystem = true;
-        } else if (choice == 1 && std::filesystem::exists("Makefile")) {
-            runCmd = "make";
-            usingBuildSystem = true;
-        }
     }
 
     // it will default to standard compile
