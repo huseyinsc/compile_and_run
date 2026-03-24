@@ -1,5 +1,5 @@
 #!/bin/bash
-# build.sh - FetchContent ile modülleri otomatik çeken build script
+# build.sh - Build script that automatically fetches modules with FetchContent
 
 set -e
 
@@ -10,28 +10,37 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # ==================== HELP ====================
+show_help() {
+    echo -e "${GREEN}=== CompileAndRun Build Script Help ===${NC}"
+    echo -e "${BLUE}Usage:${NC} ./build.sh [OPTIONS]"
+    echo ""
+    echo -e "${YELLOW}Available parameters:${NC}"
+    echo -e "  ${GREEN}--clean${NC} | ${GREEN}-c${NC}          Clean the build directory"
+    echo -e "  ${GREEN}--debug${NC}               Build in Debug mode (Release is default)"
+    echo -e "  ${GREEN}--static${NC}              Create a static executable"
+    echo -e "  ${GREEN}--purge-cache${NC}         Clear the GLOBAL cache completely (dangerous!)"
+    echo -e "  ${GREEN}--install${NC}             Install to /usr/local/bin (may require sudo)"
+    echo -e "  ${GREEN}help${NC} | ${GREEN}--help${NC} | ${GREEN}-h${NC}   Display this help message"
+    echo ""
+    echo -e "${YELLOW}Example usages:${NC}"
+    echo -e "  ${BLUE}./build.sh${NC}                          → Normal Release build"
+    echo -e "  ${BLUE}./build.sh --clean${NC}                  → Clean build directory and rebuild"
+    echo -e "  ${BLUE}./build.sh --debug${NC}                  → Build in Debug mode"
+    echo -e "  ${BLUE}./build.sh --static${NC}                 → Create static executable"
+    echo -e "  ${BLUE}./build.sh --clean --debug${NC}          → Clean + Debug build"
+    echo -e "  ${BLUE}./build.sh --purge-cache${NC}            → Reset cache (will download again)"
+    echo -e "  ${BLUE}./build.sh --install${NC}                → Build + Install to /usr/local/bin (may require sudo)"
+    echo -e "  ${BLUE}./build.sh --clean --static --install${NC} → Clean + Static + Install"
+    echo ""
+    echo -e "${GREEN}Cache location:${NC} ~/.cache/cpp-modules  (shared across all projects)"
+}
+
 if [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]]; then
-    echo -e "${GREEN}=== CompileAndRun Build Script Yardım ===${NC}"
-    echo -e "${BLUE}Kullanım:${NC} ./build.sh [OPTIONS]"
-    echo ""
-    echo -e "${YELLOW}Mevcut parametreler:${NC}"
-    echo -e "  ${GREEN}--clean${NC} | ${GREEN}-c${NC}          Build klasörünü temizler"
-    echo -e "  ${GREEN}--debug${NC}               Debug modunda derler (Release varsayılan)"
-    echo -e "  ${GREEN}--static${NC}              Statik executable oluşturur"
-    echo -e "  ${GREEN}--purge-cache${NC}         GLOBAL cache’i tamamen siler (tehlikeli!)"    echo -e "  ${GREEN}--install${NC}             /usr/local/bin'e kurar (sudo gerektirebilir)"    echo -e "  ${GREEN}help${NC} | ${GREEN}--help${NC} | ${GREEN}-h${NC}   Bu yardım mesajını gösterir"
-    echo ""
-    echo -e "${YELLOW}Örnek kullanımlar:${NC}"
-    echo -e "  ${BLUE}./build.sh${NC}                    → Normal Release build"
-    echo -e "  ${BLUE}./build.sh --clean${NC}            → Build klasörünü temizleyip yeniden derle"
-    echo -e "  ${BLUE}./build.sh --debug${NC}            → Debug modunda derle"
-    echo -e "  ${BLUE}./build.sh --static${NC}           → Statik executable oluştur"
-    echo -e "  ${BLUE}./build.sh --clean --debug${NC}    → Temizle + Debug derle"
-    echo -e "  ${BLUE}./build.sh --purge-cache${NC}      → Cache’i sıfırla (yeniden indirecek)"    echo -e "  ${BLUE}./build.sh --install${NC}          → Build + /usr/local/bin'e yükle (sudo gerekebilir)"    echo ""
-    echo -e "${GREEN}Cache konumu:${NC} ~/.cache/cpp-modules  (tüm projelerde ortak)"
+    show_help
     exit 0
 fi
 
-echo -e "${GREEN}=== CompileAndRun Build Başlıyor (Global Cache) ===${NC}"
+echo -e "${GREEN}=== CompileAndRun Build Starting (Global Cache) ===${NC}"
 
 GENERATOR="Ninja"
 
@@ -41,21 +50,46 @@ STATIC=false
 PURGE_CACHE=false
 INSTALL_TO_PATH=false
 
-if [[ "$1" == "--clean" || "$1" == "-c" ]]; then CLEAN=true; fi
-if [[ "$1" == "--debug" ]]; then BUILD_TYPE="Debug"; fi
-if [[ "$1" == "--static" ]]; then STATIC=true; fi
-if [[ "$1" == "--purge-cache" ]]; then PURGE_CACHE=true; fi
-if [[ "$1" == "--install" ]]; then INSTALL_TO_PATH=true; fi
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --clean|-c)
+            CLEAN=true
+            ;;
+        --debug)
+            BUILD_TYPE="Debug"
+            ;;
+        --static)
+            STATIC=true
+            ;;
+        --purge-cache)
+            PURGE_CACHE=true
+            ;;
+        --install)
+            INSTALL_TO_PATH=true
+            ;;
+        --help|-h|help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Bilinmeyen parametre: $1${NC}"
+            echo -e "${YELLOW}Yardım için: ./build.sh --help${NC}"
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 if [ "$CLEAN" = true ]; then
-    echo -e "${YELLOW}Build klasörü temizleniyor...${NC}"
+    echo -e "${YELLOW}Cleaning build directory...${NC}"
     rm -rf build
 fi
 
 if [ "$PURGE_CACHE" = true ]; then
-    echo -e "${RED}!!! GLOBAL CACHE SİLİNİYOR !!!${NC}"
+    echo -e "${RED}!!! GLOBAL CACHE IS BEING DELETED !!!${NC}"
     rm -rf "$HOME/.cache/cpp-modules" 2>/dev/null || true
-    echo -e "${YELLOW}Cache tamamen temizlendi. Sonraki build'de yeniden indirilecek.${NC}"
+    echo -e "${YELLOW}Cache completely cleared. Will download again on next build.${NC}"
 fi
 
 echo -e "${GREEN}Building with ${BUILD_TYPE} (Static: ${STATIC})...${NC}"
@@ -68,13 +102,13 @@ cmake -B build -G "$GENERATOR" \
 cmake --build build --config "${BUILD_TYPE}"
 
 if [ "$INSTALL_TO_PATH" = true ]; then
-    echo -e "${YELLOW}/usr/local/bin'e kuruluyor...${NC}"
+    echo -e "${YELLOW}Installing to /usr/local/bin...${NC}"
     sudo cmake --install build
-    echo -e "${GREEN}compile_and_run başarıyla kuruldu!${NC}"
-    echo -e "${BLUE}Kontrol et: ${NC}compile_and_run --help"
+    echo -e "${GREEN}compile_and_run successfully installed!${NC}"
+    echo -e "${BLUE}Verify with: ${NC}compile_and_run --help"
 fi
 
 echo -e "${GREEN}====================================${NC}"
-echo -e "${GREEN}Build TAMAMLANDI!${NC}"
+echo -e "${GREEN}Build COMPLETED!${NC}"
 echo -e "Executable : ${GREEN}./build/compile_and_run${NC}"
-echo -e "${YELLOW}Çalıştırmak için: ./build/compile_and_run${NC}"
+echo -e "${YELLOW}To run: ./build/compile_and_run${NC}"

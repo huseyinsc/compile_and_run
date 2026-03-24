@@ -11,6 +11,39 @@ A cross-platform C++ utility that compiles and runs C++ source files with user-s
 - **CMake-Based Build**: Modern build system with presets and FetchContent for dependency management
 - **C++23 Standard**: Leverages the latest C++ features and modules
 
+## Why compile_and_run? (Philosophy & Use Cases)
+
+### Not a CMake Replacement, but a Build System Wrapper
+
+This tool is not intended to replace CMake or other build systems. Instead, it acts as an intelligent orchestrator that adapts to your project's build setup. When triggered (typically via VS Code's CodeRunner extension), it first inspects the current directory:
+
+- If a `CMakeLists.txt` file is present, it delegates the build process to CMake, executing `cmake -S . -B build && cmake --build build`.
+- If a `Makefile` exists, it runs `make`.
+- If neither is found, it falls back to its own lightweight compilation logic using direct compiler commands.
+
+This approach ensures seamless integration with existing projects while providing a unified interface for quick prototyping.
+
+### The 'Scratchpad' Paradigm (Fast Prototyping)
+
+For rapid experimentation and testing of individual C++ algorithms or small code snippets, setting up a full CMake project can be excessive. `compile_and_run` embraces the "scratchpad" philosophy: simply write your `.cpp` file, and with a minimal `runner_config.txt` (either locally in the project directory or globally in your user config), compile and execute instantly. No project files, no build directories—just fast, direct compilation in seconds.
+
+### Execution Lifecycle & Developer Ergonomics
+
+While CMake excels at building projects, it stops at compilation—you must manually run the resulting binary. `compile_and_run` extends this workflow by automating the entire cycle:
+
+- Compiles the code.
+- Detects the operating system and launches the native terminal (PowerShell or Command Prompt on Windows; GNOME Terminal, XTerm, or similar on Linux) in a new window.
+- Executes the compiled binary.
+- Keeps the terminal open after execution, allowing you to inspect output, interact with the program, or rerun commands.
+
+This provides significant ergonomic benefits, particularly for developing command-line applications where immediate feedback and terminal interaction are crucial.
+
+### Agility with Local Configs
+
+Managing dependencies for multiple isolated `.cpp` files in a directory can be cumbersome without a full build system. `compile_and_run` offers per-directory configuration through local `runner_config.txt` files. For example, if several files in a folder require the `-lfmt` library, simply add `LIBS=-lfmt` to the local config. This override applies automatically to all standard compilations in that directory, eliminating the need for CMake boilerplate while maintaining flexibility.
+
+In summary, `compile_and_run` bridges the gap between heavyweight build systems like CMake and the need for lightweight, agile development workflows. It's designed for developers who value speed and simplicity without sacrificing power when needed.
+
 ## Prerequisites
 
 - **CMake**: Version 3.28 or higher
@@ -67,6 +100,7 @@ The easiest way to add `compile_and_run` to your PATH is to use the `--install` 
 ```
 
 This will:
+
 1. Build the project in Release mode
 2. Automatically copy the executable to your PATH
 3. Make `compile_and_run` available globally
@@ -108,19 +142,34 @@ After installation, restart VS Code to pick up the updated PATH and use CodeRunn
 ### Build Examples
 
 ```bash
-# Clean build in Debug mode
-./build.sh --clean --debug
+# Basic builds
+./build.sh                          # Normal Release build
+./build.sh --debug                  # Debug mode build
+./build.sh --static                 # Static executable build
 
-# Static release build with automatic installation
-./build.sh --static --install
+# Clean builds
+./build.sh --clean                  # Clean and rebuild in Release mode
+./build.sh --clean --debug          # Clean and rebuild in Debug mode
+./build.sh --clean --static         # Clean and build static executable
+
+# Combined options
+./build.sh --clean --static --install  # Clean, build static, and install
+./build.sh --debug --install           # Debug build with installation
+./build.sh --static --debug            # Static debug build
+
+# Cache management
+./build.sh --purge-cache             # Clear global cache and rebuild
+./build.sh --clean --purge-cache     # Clean build dir, clear cache, rebuild
 
 # Display help
 ./build.sh --help
 
-# Windows equivalent
-.\build.ps1 -Clean -Debug
-.\build.ps1 -Static -Install
-.\build.ps1 -Help
+# Windows equivalents
+.\build.ps1                          # Normal Release build
+.\build.ps1 -Clean -Debug            # Clean and rebuild in Debug mode
+.\build.ps1 -Static -Install         # Static build with installation
+.\build.ps1 -Clean -Static -Install  # Clean, static, install
+.\build.ps1 -Help                    # Display help
 ```
 
 ## Using CMake Presets

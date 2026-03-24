@@ -23,14 +23,14 @@ include(FetchContent)
 FetchContent_Declare(
     cpp_modules
     GIT_REPOSITORY https://github.com/huseyinsc/cpp-modules.git
-    GIT_TAG        master          # İstersen "v1.0" tag atarsın, daha stabil olur
+    GIT_TAG        master          # You can tag 'v1.0' if you want, it will be more stable
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
 )
 
 FetchContent_MakeAvailable(cpp_modules)
 
-# Modülleri dahil et (her modül kendi CMakeLists.txt'ini çalıştırır)
+# Include modules (each module runs its own CMakeLists.txt)
 add_subdirectory(
     ${cpp_modules_SOURCE_DIR}/terminal_utils
     ${cpp_modules_BINARY_DIR}/terminal_utils
@@ -44,7 +44,7 @@ add_subdirectory(
 # ==================== Main Executable ====================
 add_executable(compile_and_run compile_and_run.cpp)
 
-# Kütüphaneleri linkle (modüllerin PUBLIC include'ları otomatik gelir)
+# Link libraries (modules' PUBLIC includes come automatically)
 target_link_libraries(compile_and_run PRIVATE
     terminal_utils_lib
     colorline_lib
