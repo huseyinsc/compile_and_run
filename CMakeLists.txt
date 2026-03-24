@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.28)
 project(CompileAndRun VERSION 1.0.0 LANGUAGES CXX)
 
+# ==================== GLOBAL FetchContent Cache ====================
+if(WIN32)
+    set(DEFAULT_CACHE_DIR "$ENV{LOCALAPPDATA}/cpp-modules")
+else()
+    set(DEFAULT_CACHE_DIR "$ENV{HOME}/.cache/cpp-modules")
+endif()
+
+# Share the cache across all your projects (download once, use everywhere)
+set(FETCHCONTENT_BASE_DIR "${DEFAULT_CACHE_DIR}" 
+    CACHE PATH "Global shared cache for all C++ projects" FORCE)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -9,9 +19,6 @@ option(BUILD_STATIC "Build static executable" OFF)
 
 # ==================== Fetch Modules from GitHub ====================
 include(FetchContent)
-
-# Cache'i tüm projelerde paylaş (tek sefer indir, her yerde kullan)
-set(FETCHCONTENT_BASE_DIR "${CMAKE_SOURCE_DIR}/../_fetchcontent_cache" CACHE PATH "Shared FetchContent cache")
 
 FetchContent_Declare(
     cpp_modules
